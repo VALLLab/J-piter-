@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#070f0b"/>
+<title>Júpiter — Inteligencia de contenido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070f0b;--surface:#0d1a13;--card:#111f17;--card2:#152219;
+  --border:#1e3328;--border2:#2a4a38;
+  --green:#1a5c3e;--green-l:#2a7a52;--green-xl:#3d9966;
+  --cream:#e8e0d0;--cream-d:#b8ad9e;--text:#ede8e0;--muted:#6a7d72;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;transition:opacity .4s}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:40px 32px;width:100%;max-width:360px;text-align:center}
+.login-logo{font-family:var(--serif);font-size:34px;color:var(--cream);margin-bottom:4px}
+.login-logo em{color:var(--green-xl);font-style:normal}
+.login-sub{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:28px}
+.login-box input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:13px 16px;font-family:var(--sans);font-size:15px;color:var(--text);outline:none;text-align:center;letter-spacing:.08em;margin-bottom:10px;-webkit-appearance:none;transition:border .2s}
+.login-box input:focus{border-color:var(--green-xl)}
+.login-btn{width:100%;background:var(--green);color:var(--cream);border:none;border-radius:8px;padding:13px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;margin-bottom:8px}
+.login-btn:hover{background:var(--green-l)}
+.login-err{color:#e74c3c;font-size:12px;min-height:18px}
+.login-hint{font-size:11px;color:var(--muted);margin-top:16px}
+
+/* APP LAYOUT */
+#app{display:none;min-height:100vh}
+.layout{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:260px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:200;overflow-y:auto;transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.sidebar-logo{padding:22px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-name{font-family:var(--serif);font-size:26px;color:var(--cream);letter-spacing:-.02em;line-height:1;margin-bottom:4px}
+.logo-name em{color:var(--green-xl);font-style:normal}
+.logo-tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.sb-section{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 5px;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.sb-section button{background:none;border:1px solid var(--border2);border-radius:4px;color:var(--muted);cursor:pointer;font-size:15px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;transition:all .2s;line-height:1}
+.sb-section button:hover{border-color:var(--green-xl);color:var(--green-xl)}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 12px;margin:1px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .18s;border:1px solid transparent;position:relative}
+.sb-item:hover{background:var(--card);color:var(--text)}
+.sb-item.active{background:var(--green);color:var(--cream);font-weight:600;border-color:var(--green-l)}
+.sb-item.client-item{font-weight:600;color:var(--cream-d)}
+.sb-item.sub-item{margin-left:20px;font-size:12px}
+.sb-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sb-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-count{font-size:10px;font-family:var(--mono);opacity:.5}
+.sb-del{opacity:0;background:none;border:none;color:#c0392b;cursor:pointer;font-size:13px;padding:0 2px;transition:opacity .15s;flex-shrink:0}
+.sb-item:hover .sb-del{opacity:.7}
+.sb-del:hover{opacity:1!important}
+.sb-toggle{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;transition:transform .2s}
+.sb-toggle.open{transform:rotate(90deg)}
+.sb-footer{margin-top:auto;padding:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+
+/* MAIN */
+.main{margin-left:260px;flex:1;min-height:100vh;position:relative}
+.topbar{position:sticky;top:0;background:rgba(7,15,11,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:11px 22px;display:flex;align-items:center;justify-content:space-between;z-index:50;gap:12px;min-height:54px}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
+.menu-btn{display:none;background:none;border:1px solid var(--border2);border-radius:6px;color:var(--text);cursor:pointer;padding:7px 9px;font-size:16px;line-height:1;flex-shrink:0}
+.topbar-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.topbar-title{font-family:var(--serif);font-size:16px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-title .green{color:var(--green-xl);font-style:italic}
+.topbar-title .back{color:var(--muted);font-weight:400;font-size:12px;cursor:pointer;font-family:var(--sans);text-decoration:none}
+.topbar-title .back:hover{color:var(--cream)}
+.topbar-sub{font-size:11px;color:var(--muted)}
+.topbar-actions{display:flex;gap:7px;flex-shrink:0}
+
+/* STATS */
+.stats-bar{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.stats-bar::-webkit-scrollbar{display:none}
+.stat{padding:12px 18px;border-right:1px solid var(--border);flex-shrink:0}
+.stat-num{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--green-xl);line-height:1}
+.stat-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:3px;font-weight:500}
+
+/* BUTTONS */
+.btn{padding:8px 15px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .18s;white-space:nowrap;line-height:1.2}
+.btn-primary{background:var(--green);color:var(--cream);border-color:var(--green-l)}
+.btn-primary:hover{background:var(--green-l)}
+.btn-ghost{background:transparent;color:var(--text);border-color:var(--border2)}
+.btn-ghost:hover{border-color:var(--green-l);color:var(--cream)}
+.btn-danger{background:transparent;color:#e74c3c;border-color:#922b21}
+.btn-danger:hover{background:#922b21;color:#fff}
+.btn-sm{padding:5px 11px;font-size:11px}
+
+/* FAB */
+.fab{position:fixed;bottom:22px;right:22px;z-index:180;background:var(--green-xl);color:#fff;border:none;border-radius:50px;padding:13px 20px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;transition:all .2s}
+.fab:hover{background:var(--green-l);transform:translateY(-2px)}
+
+/* CONTENT PAGES */
+.content{padding:18px 22px 100px}
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.page-title{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--cream)}
+.page-title em{color:var(--green-xl);font-style:italic}
+.info-box{background:rgba(26,92,62,.1);border:1px solid rgba(26,92,62,.25);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--cream-d);line-height:1.65;margin-bottom:18px}
+.info-box strong{color:var(--green-xl)}
+
+/* CLIENT CARDS */
+.clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.client-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:all .2s;position:relative}
+.client-card:hover{border-color:var(--green-l);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.cc-color{width:28px;height:4px;border-radius:2px;margin-bottom:12px}
+.cc-icon{font-size:24px;margin-bottom:8px}
+.cc-name{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--cream);margin-bottom:2px}
+.cc-desc{font-size:11px;color:var(--muted);margin-bottom:10px;min-height:14px}
+.cc-meta{display:flex;gap:8px;font-family:var(--mono);font-size:10px;color:var(--green-xl)}
+.cc-del{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;opacity:0;transition:opacity .15s}
+.client-card:hover .cc-del{opacity:.6}
+.cc-del:hover{opacity:1!important;color:#e74c3c}
+.add-card{background:transparent;border:1px dashed var(--border2);border-radius:12px;padding:18px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:130px;color:var(--muted);font-size:13px}
+.add-card:hover{border-color:var(--green-xl);color:var(--green-xl)}
+
+/* SUBFOLDER CARDS */
+.subfolders-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.subfolder-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;position:relative}
+.subfolder-card:hover{border-color:var(--green-l);transform:translateY(-1px)}
+.sf-icon{font-size:20px;margin-bottom:7px}
+.sf-name{font-family:var(--serif);font-size:13px;font-weight:600;color:var(--cream);margin-bottom:2px}
+.sf-brief{font-size:10px;color:var(--muted);margin-bottom:8px;min-height:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sf-count{font-family:var(--mono);font-size:10px;color:var(--green-xl)}
+.sf-del{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;opacity:0;transition:opacity .15s}
+.subfolder-card:hover .sf-del{opacity:.6}
+.sf-del:hover{opacity:1!important;color:#e74c3c}
+
+/* REEL GRID */
+.reel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.reel-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s;position:relative}
+.reel-card:hover{border-color:var(--border2)}
+.reel-color-bar{height:3px;width:100%}
+.reel-preview{background:linear-gradient(160deg,var(--surface) 0%,var(--card2) 100%);padding:16px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;border-bottom:1px solid var(--border);text-align:center;min-height:130px;justify-content:center}
+.rp-icon{font-size:24px;opacity:.3}
+.rp-co{font-family:var(--serif);font-size:12px;font-weight:600;color:var(--cream);background:var(--surface);padding:3px 10px;border-radius:20px;border:1px solid var(--border2)}
+.rp-sc{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.rp-open{display:inline-block;margin-top:2px;background:var(--green);border:1px solid var(--green-l);border-radius:6px;padding:6px 14px;font-size:11px;color:var(--cream);font-weight:600;cursor:pointer;transition:all .15s;border-style:solid;font-family:var(--sans)}
+.rp-open:hover{background:var(--green-l)}
+.reel-body{padding:11px 13px}
+.reel-co-label{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--green-xl);margin-bottom:2px;font-weight:600}
+.reel-title{font-family:var(--serif);font-size:13px;font-weight:600;color:var(--cream);margin-bottom:7px;line-height:1.3}
+.reel-meta{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.tag{padding:2px 7px;border-radius:4px;font-size:9px;font-family:var(--mono);background:var(--surface);border:1px solid var(--border2);color:var(--muted)}
+.tag.hook{border-color:#7a5c00;color:#c9943a}
+.tag.dur{border-color:#1a4a5c;color:#3a9ab8}
+.tag.score{border-color:var(--green);color:var(--green-xl)}
+.tag.format{border-color:#4a1a7a;color:#9b59b6}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;font-family:var(--mono);letter-spacing:.05em}
+.status-saved{background:rgba(52,152,219,.1);border:1px solid #2980b9;color:#3498db}
+.status-analyzed{background:rgba(61,153,102,.1);border:1px solid var(--green);color:var(--green-xl)}
+.status-published{background:rgba(230,126,34,.1);border:1px solid #d35400;color:#e67e22}
+.reel-hook-text{font-size:11px;color:var(--muted);font-style:italic;line-height:1.5;margin-bottom:8px;font-family:var(--serif)}
+.reel-actions{display:flex;gap:5px;border-top:1px solid var(--border);padding-top:8px;flex-wrap:wrap}
+
+/* COLOR LABELS */
+.color-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.color-picker{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.color-opt{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0}
+.color-opt.sel{border-color:var(--cream);transform:scale(1.15)}
+.color-opt:hover{transform:scale(1.1)}
+
+/* FILTER */
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.filter-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:500}
+.chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);color:var(--muted);background:transparent;transition:all .15s;font-family:var(--sans)}
+.chip:hover{border-color:var(--green-l);color:var(--cream)}
+.chip.active{background:var(--green);color:var(--cream);border-color:var(--green-l)}
+
+/* TABLE VIEW */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+thead tr{background:var(--surface);border-bottom:2px solid var(--border2)}
+thead th{padding:11px 13px;text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--card)}
+tbody td{padding:10px 13px;color:var(--cream-d);vertical-align:middle}
+.td-company{color:var(--cream);font-weight:600;font-family:var(--serif);font-size:13px;white-space:nowrap}
+.td-score{font-family:var(--mono);color:var(--green-xl);font-weight:600;text-align:center}
+.td-hook{color:#c9943a;font-size:11px}
+
+/* COMPARE VIEW */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.compare-selector{background:var(--card);border:1px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;color:var(--muted);font-size:13px;min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transition:all .2s}
+.compare-selector:hover{border-color:var(--green-xl);color:var(--green-xl)}
+.compare-card{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:16px}
+.compare-label{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-weight:600}
+.compare-name{font-family:var(--serif);font-size:16px;font-weight:700;color:var(--cream);margin-bottom:12px}
+.compare-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.compare-row:last-child{border-bottom:none}
+.compare-row .cr-key{color:var(--muted);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.compare-row .cr-val{color:var(--cream-d);text-align:right;max-width:160px;font-size:11px}
+.compare-winner{color:var(--green-xl);font-weight:700}
+.vs-badge{background:var(--green);color:var(--cream);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin:0 auto 16px;font-family:var(--mono)}
+
+/* CHART */
+.chart-container{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.chart-title{font-family:var(--serif);font-size:16px;font-weight:700;color:var(--cream);margin-bottom:16px}
+.chart-wrap{position:relative;height:260px}
+.no-data{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+
+/* MODAL */
+.overlay-modal{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);z-index:400;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:93vh;overflow-y:auto;padding:20px 20px 36px;animation:slideUp .25s cubic-bezier(.4,0,.2,1)}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--cream);margin-bottom:16px}
+.modal-title em{color:var(--green-xl);font-style:italic}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-weight:600}
+.field input,.field textarea,.field select{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:11px 13px;font-family:var(--sans);font-size:14px;color:var(--text);outline:none;transition:border .18s;-webkit-appearance:none;appearance:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--green-xl)}
+.field textarea{resize:vertical;min-height:68px}
+.field select option{background:var(--surface)}
+.modal-actions{display:flex;gap:9px;margin-top:16px}
+.modal-actions .btn{flex:1;text-align:center}
+.form-error{color:#e74c3c;font-size:12px;margin-bottom:10px;background:rgba(231,76,60,.08);padding:8px 12px;border-radius:6px;border:1px solid rgba(231,76,60,.25)}
+
+/* EMOJI */
+.emoji-grid{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.emoji-opt{font-size:20px;cursor:pointer;padding:5px 7px;border-radius:7px;border:1px solid var(--border);transition:all .15s;background:transparent;line-height:1}
+.emoji-opt.sel{border-color:var(--green-xl);background:rgba(61,153,102,.15)}
+
+/* ANALYSIS */
+.analysis-loading{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;padding:20px 0}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--green-xl);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.as{margin-bottom:15px}
+.as h4{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--green-xl);margin-bottom:6px;font-weight:600}
+.as p,.as li{font-size:13px;color:var(--cream-d);line-height:1.7}
+.as ul{padding-left:16px}
+.idea-card{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:11px 13px;margin-bottom:7px}
+.idea-num{font-family:var(--mono);color:var(--green-xl);font-size:9px;margin-bottom:3px;letter-spacing:.1em}
+.idea-card strong{font-family:var(--serif);font-size:14px;display:block;margin-bottom:3px;color:var(--cream)}
+.idea-card p{font-size:12px;color:var(--cream-d);line-height:1.6}
+
+/* TOAST */
+.toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:var(--cream);padding:11px 20px;border-radius:50px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* SELECT REEL for compare */
+.reel-select-list{display:flex;flex-direction:column;gap:7px;max-height:300px;overflow-y:auto}
+.reel-select-item{background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:10px 13px;cursor:pointer;transition:all .15s}
+.reel-select-item:hover{border-color:var(--green-xl)}
+.reel-select-item.sel{border-color:var(--green-xl);background:rgba(26,92,62,.2)}
+.rsi-co{font-size:11px;font-weight:700;color:var(--green-xl)}
+.rsi-title{font-size:13px;color:var(--cream)}
+
+/* OVERLAY BG */
+.overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150}
+
+/* MOBILE */
+@media(max-width:720px){
+  .sidebar{transform:translateX(-100%);width:240px}
+  .sidebar.open{transform:translateX(0);box-shadow:8px 0 32px rgba(0,0,0,.6)}
+  .overlay-bg{display:block;opacity:0;pointer-events:none;transition:opacity .3s}
+  .overlay-bg.open{opacity:1;pointer-events:all}
+  .main{margin-left:0}
+  .menu-btn{display:flex}
+  .content{padding:14px 14px 100px}
+  .clients-grid,.subfolders-grid{grid-template-columns:repeat(2,1fr);gap:9px}
+  .reel-grid{grid-template-columns:1fr}
+  .compare-grid{grid-template-columns:1fr}
+  .topbar{padding:10px 14px}
+  .stat{padding:10px 14px}
+  .stat-num{font-size:20px}
+  .fab{bottom:16px;right:16px;padding:12px 18px;font-size:13px}
+  .modal{padding:18px 16px 32px}
+}
+@media(max-width:380px){
+  .clients-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Júpiter<em>.</em></div>
+    <div class="login-sub">Inteligencia de contenido</div>
+    <input type="password" id="pw-input" placeholder="Contraseña" autocomplete="current-password"/>
+    <button class="login-btn" onclick="tryLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint">Necesitás la contraseña del administrador</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">Júpiter<em>.</em></div>
+    <div class="logo-tag">Inteligencia de contenido</div>
+  </div>
+  <div class="sb-section">Vistas</div>
+  <div class="sb-item" data-view="home" onclick="setView('home')">
+    <span class="sb-icon">◈</span><span class="sb-label">Clientes</span><span class="sb-count" id="sb-client-count">0</span>
+  </div>
+  <div class="sb-item" data-view="table" onclick="setView('table')">
+    <span class="sb-icon">⊞</span><span class="sb-label">Tabla / Excel</span><span class="sb-count" id="sb-reel-count">0</span>
+  </div>
+  <div class="sb-item" data-view="chart" onclick="setView('chart')">
+    <span class="sb-icon">◎</span><span class="sb-label">Gráficos</span>
+  </div>
+  <div class="sb-item" data-view="compare" onclick="setView('compare')">
+    <span class="sb-icon">⇌</span><span class="sb-label">Comparar reels</span>
+  </div>
+  <div class="sb-section">Clientes<button onclick="openModal('modal-client')">+</button></div>
+  <div id="sb-clients"></div>
+  <div class="sb-footer">
+    <button class="btn btn-ghost btn-sm" onclick="openModal('modal-client')">+ Nuevo cliente</button>
+    <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">↓ Exportar CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="logout()" style="color:var(--muted);font-size:11px">Cerrar sesión</button>
+  </div>
+</div>
+
+<!-- OVERLAY BG -->
+<div class="overlay-bg" id="overlay-bg" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-info">
+        <div class="topbar-title" id="topbar-title"><span class="green">Júpiter</span> Estrategias</div>
+        <div class="topbar-sub" id="topbar-sub"></div>
+      </div>
+    </div>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </div>
+
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat"><div class="stat-num" id="stat-reels">0</div><div class="stat-label">Reels</div></div>
+    <div class="stat"><div class="stat-num" id="stat-clients">0</div><div class="stat-label">Clientes</div></div>
+    <div class="stat"><div class="stat-num" id="stat-analyzed">0</div><div class="stat-label">Analizados</div></div>
+    <div class="stat"><div class="stat-num" id="stat-score">—</div><div class="stat-label">Score medio</div></div>
+  </div>
+
+  <div id="view-container"></div>
+</div><!-- /main -->
+
+</div><!-- /layout -->
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="fabClick()">+ Nuevo cliente</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+</div><!-- /app -->
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- CLIENT MODAL -->
+<div class="overlay-modal" id="modal-client" style="display:none" onclick="if(event.target===this)closeModal('modal-client')">
+<div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Nuevo <em>Cliente</em></div>
+  <div class="field">
+    <label>Ícono</label>
+    <div class="emoji-grid" id="client-emoji-grid"></div>
+  </div>
+  <div class="field"><label>Nombre del cliente *</label><input id="client-name" placeholder="Maicol, Marca XYZ..."/></div>
+  <div class="field"><label>Descripción (opcional)</label><input id="client-desc" placeholder="Marca personal, librería, ecommerce..."/></div>
+  <div class="field">
+    <label>Color de etiqueta</label>
+    <div class="color-picker" id="client-color-picker"></div>
+  </div>
+  <div class="form-error" id="client-err" style="display:none"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-client')">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveClient()">Crear cliente</button>
+  </div>
+</div>
+</div>
+
+<!-- SUBFOLDER MODAL -->
+<div class="overlay-modal" id="modal-subfolder" style="display:none" onclick="if(event.target===this)closeModal('modal-subfolder')">
+<div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Nueva <em>Carpeta</em></div>
+  <div class="field">
+    <label>Ícono</label>
+    <div class="emoji-grid" id="sf-emoji-grid"></div>
+  </div>
+  <div class="field"><label>Nombre *</label><input id="sf-name" placeholder="Competencia, Referencias, Ideas..."/></div>
+  <div class="field"><label>Brief / Notas internas</label><textarea id="sf-brief" placeholder="Contexto de esta carpeta, objetivos, instrucciones..."></textarea></div>
+  <div class="form-error" id="sf-err" style="display:none"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-subfolder')">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveSubfolder()">Crear carpeta</button>
+  </div>
+</div>
+</div>
+
+<!-- REEL MODAL -->
+<div class="overlay-modal" id="modal-reel" style="display:none" onclick="if(event.target===this)closeModal('modal-reel')">
+<div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Cargar <em>Reel</em></div>
+  <div class="field"><label>Link de Instagram *</label><input id="reel-url" placeholder="https://www.instagram.com/reel/..." type="url"/></div>
+  <div class="field"><label>Empresa / Cuenta *</label><input id="reel-company" placeholder="@empresa o nombre"/></div>
+  <div class="field"><label>Título (opcional)</label><input id="reel-title" placeholder="Reel de novedades agosto..."/></div>
+  <div class="field"><label>Duración (segundos)</label><input id="reel-duration" type="number" inputmode="numeric" placeholder="30"/></div>
+  <div class="field">
+    <label>Formato</label>
+    <select id="reel-format">
+      <option value="">— Sin especificar —</option>
+      <option value="Tutorial">Tutorial</option>
+      <option value="Storytelling">Storytelling</option>
+      <option value="Humor">Humor</option>
+      <option value="Tendencia">Tendencia</option>
+      <option value="Producto">Producto / Showcase</option>
+      <option value="Testimonio">Testimonio</option>
+      <option value="Educativo">Educativo</option>
+      <option value="Detrás de cámara">Detrás de cámara</option>
+      <option value="Motivacional">Motivacional</option>
+      <option value="UGC">UGC</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Estado</label>
+    <select id="reel-status">
+      <option value="saved">Guardado</option>
+      <option value="analyzed">Analizado</option>
+      <option value="published">Publicado / Usado</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Color de etiqueta</label>
+    <div class="color-picker" id="reel-color-picker"></div>
+  </div>
+  <div class="field"><label>Notas</label><textarea id="reel-notes" placeholder="Observaciones, qué te llamó la atención..."></textarea></div>
+  <div class="form-error" id="reel-err" style="display:none"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-reel')">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveReel()">✓ Cargar reel</button>
+  </div>
+</div>
+</div>
+
+<!-- ANALYSIS MODAL -->
+<div class="overlay-modal" id="modal-analysis" style="display:none" onclick="if(event.target===this)closeModal('modal-analysis')">
+<div class="modal" style="max-width:580px">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="analysis-title">Análisis <em>IA</em></div>
+  <div id="analysis-body"></div>
+</div>
+</div>
+
+<!-- COMPARE SELECT MODAL -->
+<div class="overlay-modal" id="modal-compare-select" style="display:none" onclick="if(event.target===this)closeModal('modal-compare-select')">
+<div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="compare-select-title">Elegí un <em>reel</em></div>
+  <div class="reel-select-list" id="compare-select-list"></div>
+  <div class="modal-actions" style="margin-top:14px">
+    <button class="btn btn-ghost" onclick="closeModal('modal-compare-select')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG — CAMBIÁ ESTO
+// ═══════════════════════════════════════════════════════════
+const PASSWORD = "jupiter2025";  // ← cambiá la contraseña acá
+
+// ═══════════════════════════════════════════════════════════
+// DATA & STORAGE
+// ═══════════════════════════════════════════════════════════
+const SK = "jupiter-v5";
+let DB = { clients: [], subfolders: [], reels: [] };
+
+function loadDB() {
+  try { const r = localStorage.getItem(SK); if(r) DB = JSON.parse(r); } catch(e){}
+}
+function saveDB() {
+  try { localStorage.setItem(SK, JSON.stringify(DB)); } catch(e){}
+}
+loadDB();
+
+// ═══════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════
+function checkAuth() {
+  return sessionStorage.getItem("jp-auth") === "1";
+}
+function tryLogin() {
+  const v = document.getElementById("pw-input").value;
+  if (v === PASSWORD) {
+    sessionStorage.setItem("jp-auth","1");
+    document.getElementById("login-screen").style.opacity = "0";
+    setTimeout(() => {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      init();
+    }, 400);
+  } else {
+    document.getElementById("login-err").textContent = "Contraseña incorrecta";
+    document.getElementById("pw-input").style.borderColor = "#e74c3c";
+    setTimeout(() => { document.getElementById("pw-input").style.borderColor = ""; }, 1500);
+  }
+}
+function logout() {
+  sessionStorage.removeItem("jp-auth");
+  location.reload();
+}
+document.getElementById("pw-input").addEventListener("keydown", e => { if(e.key==="Enter") tryLogin(); });
+if (checkAuth()) {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.addEventListener("DOMContentLoaded", init);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const EMOJIS = ["👤","🏪","📚","🛍️","🍕","✈️","💄","🎨","🏠","💻","🎵","📸","🌿","🍫","👗","🎭","🏋️","🧪","📁","🎯","🔥","💡","🌟","🎪"];
+const COLORS = [
+  {id:"none",  hex:"#2a4a38", label:"Sin color"},
+  {id:"green", hex:"#27ae60", label:"Verde"},
+  {id:"blue",  hex:"#2980b9", label:"Azul"},
+  {id:"orange",hex:"#e67e22", label:"Naranja"},
+  {id:"red",   hex:"#e74c3c", label:"Rojo"},
+  {id:"purple",hex:"#8e44ad", label:"Violeta"},
+  {id:"yellow",hex:"#f1c40f", label:"Amarillo"},
+  {id:"pink",  hex:"#e91e8c", label:"Rosa"},
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let state = {
+  view: "home",         // home | subfolders | reels | table | chart | compare
+  clientId: null,
+  subfolderId: null,
+  selectedEmoji: "👤",
+  selectedColor: "none",
+  compareA: null,
+  compareB: null,
+  comparePicking: null, // "A" | "B"
+};
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function init() {
+  renderSidebar();
+  updateStats();
+  setView("home");
+  buildColorPickers();
+  buildEmojiGrids();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════
+function renderSidebar() {
+  const el = document.getElementById("sb-clients");
+  el.innerHTML = "";
+  DB.clients.forEach(c => {
+    const subs = DB.subfolders.filter(s => s.clientId === c.id);
+    const reelCount = DB.reels.filter(r => r.clientId === c.id).length;
+    const col = COLORS.find(x=>x.id===c.color)||COLORS[0];
+    const clientEl = document.createElement("div");
+    clientEl.className = `sb-item client-item${state.clientId===c.id&&state.view==="subfolders"?" active":""}`;
+    clientEl.innerHTML = `
+      <span class="sb-icon">${c.icon||"👤"}</span>
+      <span class="sb-label">${c.name}</span>
+      <span class="sb-count">${reelCount}</span>
+      <button class="sb-del" onclick="event.stopPropagation();deleteClient('${c.id}')" title="Eliminar">✕</button>
+    `;
+    clientEl.onclick = () => openClient(c.id);
+    el.appendChild(clientEl);
+    // subfolders
+    subs.forEach(s => {
+      const rc = DB.reels.filter(r => r.subfolderId === s.id).length;
+      const sfEl = document.createElement("div");
+      sfEl.className = `sb-item sub-item${state.subfolderId===s.id&&state.view==="reels"?" active":""}`;
+      sfEl.innerHTML = `
+        <span class="sb-icon">${s.icon||"📁"}</span>
+        <span class="sb-label">${s.name}</span>
+        <span class="sb-count">${rc}</span>
+        <button class="sb-del" onclick="event.stopPropagation();deleteSubfolder('${s.id}')" title="Eliminar">✕</button>
+      `;
+      sfEl.onclick = () => openSubfolder(s.id, s.clientId);
+      el.appendChild(sfEl);
+    });
+  });
+  document.getElementById("sb-client-count").textContent = DB.clients.length;
+  document.getElementById("sb-reel-count").textContent = DB.reels.length;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VIEWS
+// ═══════════════════════════════════════════════════════════
+function setView(v, clientId, subfolderId) {
+  state.view = v;
+  if (clientId !== undefined) state.clientId = clientId;
+  if (subfolderId !== undefined) state.subfolderId = subfolderId;
+  closeSidebar();
+  renderSidebar();
+  updateStats();
+  renderView();
+  updateTopbar();
+  updateFab();
+  // update sidebar active
+  document.querySelectorAll(".sb-item[data-view]").forEach(el => {
+    el.classList.toggle("active", el.dataset.view === v);
+  });
+}
+
+function openClient(clientId) {
+  state.clientId = clientId;
+  state.subfolderId = null;
+  setView("subfolders", clientId);
+}
+function openSubfolder(subfolderId, clientId) {
+  state.subfolderId = subfolderId;
+  state.clientId = clientId;
+  setView("reels", clientId, subfolderId);
+}
+
+function updateTopbar() {
+  const title = document.getElementById("topbar-title");
+  const sub = document.getElementById("topbar-sub");
+  const actions = document.getElementById("topbar-actions");
+  actions.innerHTML = "";
+  sub.textContent = "";
+
+  if (state.view === "home") {
+    title.innerHTML = `<span class="green">Júpiter</span> Estrategias`;
+  } else if (state.view === "table") {
+    title.innerHTML = `<span class="green">Tabla</span> completa`;
+  } else if (state.view === "chart") {
+    title.innerHTML = `<span class="green">Gráficos</span>`;
+  } else if (state.view === "compare") {
+    title.innerHTML = `<span class="green">Comparar</span> reels`;
+  } else if (state.view === "subfolders") {
+    const c = DB.clients.find(x => x.id === state.clientId);
+    title.innerHTML = `<span class="back" onclick="setView('home')">← Clientes</span> · ${c?.icon||""} ${c?.name||""}`;
+    const btn = document.createElement("button");
+    btn.className = "btn btn-ghost btn-sm";
+    btn.textContent = "✦ Ideas IA";
+    btn.onclick = () => genFolderIdeas();
+    actions.appendChild(btn);
+  } else if (state.view === "reels") {
+    const c = DB.clients.find(x => x.id === state.clientId);
+    const s = DB.subfolders.find(x => x.id === state.subfolderId);
+    title.innerHTML = `<span class="back" onclick="openClient('${state.clientId}')">← ${c?.name||""}</span> · ${s?.icon||""} ${s?.name||""}`;
+    const reels = DB.reels.filter(r => r.subfolderId === state.subfolderId);
+    sub.textContent = `${reels.length} reels · ${reels.filter(r=>r.status==="analyzed").length} analizados`;
+    if (reels.length > 0) {
+      const btn = document.createElement("button");
+      btn.className = "btn btn-ghost btn-sm";
+      btn.textContent = "✦ Ideas IA";
+      btn.onclick = () => genFolderIdeas();
+      actions.appendChild(btn);
+    }
+  }
+}
+
+function updateFab() {
+  const fab = document.getElementById("fab");
+  if (state.view === "reels") fab.textContent = "+ Cargar reel";
+  else if (state.view === "subfolders") fab.textContent = "+ Nueva carpeta";
+  else if (state.view === "home") fab.textContent = "+ Nuevo cliente";
+  else fab.style.display = "none";
+  if (["home","subfolders","reels"].includes(state.view)) fab.style.display = "";
+}
+
+function fabClick() {
+  if (state.view === "reels") openModal("modal-reel");
+  else if (state.view === "subfolders") openModal("modal-subfolder");
+  else openModal("modal-client");
+}
+
+function updateStats() {
+  document.getElementById("stat-reels").textContent = DB.reels.length;
+  document.getElementById("stat-clients").textContent = DB.clients.length;
+  document.getElementById("stat-analyzed").textContent = DB.reels.filter(r=>r.status==="analyzed"||r.analyzed).length;
+  const scores = DB.reels.filter(r=>r.score).map(r=>r.score);
+  document.getElementById("stat-score").textContent = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : "—";
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER VIEW
+// ═══════════════════════════════════════════════════════════
+function renderView() {
+  const vc = document.getElementById("view-container");
+  vc.innerHTML = "";
+  if (state.view === "home") renderHome(vc);
+  else if (state.view === "subfolders") renderSubfolders(vc);
+  else if (state.view === "reels") renderReels(vc);
+  else if (state.view === "table") renderTable(vc);
+  else if (state.view === "chart") renderChart(vc);
+  else if (state.view === "compare") renderCompare(vc);
+}
+
+// HOME — clients grid
+function renderHome(vc) {
+  vc.innerHTML = `
+    <div class="content">
+      <div class="page-header"><div class="page-title">Mis <em>Clientes</em></div></div>
+      <div class="info-box"><strong>¿Cómo usar Júpiter?</strong> Creá un cliente, dentro creá carpetas (competencia, referencias, ideas), y en cada carpeta cargá reels para analizarlos con IA.</div>
+      <div class="clients-grid" id="clients-grid"></div>
+    </div>`;
+  const grid = document.getElementById("clients-grid");
+  DB.clients.forEach(c => {
+    const reelCount = DB.reels.filter(r => r.clientId === c.id).length;
+    const sfCount = DB.subfolders.filter(s => s.clientId === c.id).length;
+    const col = COLORS.find(x=>x.id===c.color)||COLORS[0];
+    const card = document.createElement("div");
+    card.className = "client-card";
+    card.innerHTML = `
+      <button class="cc-del" onclick="event.stopPropagation();deleteClient('${c.id}')">✕</button>
+      <div class="cc-color" style="background:${col.hex}"></div>
+      <div class="cc-icon">${c.icon||"👤"}</div>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-desc">${c.desc||""}</div>
+      <div class="cc-meta"><span>${sfCount} carpetas</span><span>${reelCount} reels</span></div>`;
+    card.onclick = () => openClient(c.id);
+    grid.appendChild(card);
+  });
+  const addCard = document.createElement("div");
+  addCard.className = "add-card";
+  addCard.innerHTML = `<div style="font-size:26px;font-weight:300">+</div><div>Nuevo cliente</div>`;
+  addCard.onclick = () => openModal("modal-client");
+  grid.appendChild(addCard);
+}
+
+// SUBFOLDERS
+function renderSubfolders(vc) {
+  const client = DB.clients.find(c => c.id === state.clientId);
+  if (!client) { setView("home"); return; }
+  const subs = DB.subfolders.filter(s => s.clientId === state.clientId);
+  vc.innerHTML = `
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">${client.icon||"👤"} <em>${client.name}</em></div>
+      </div>
+      ${client.desc ? `<div class="info-box">${client.desc}</div>` : ""}
+      <div class="subfolders-grid" id="sf-grid"></div>
+    </div>`;
+  const grid = document.getElementById("sf-grid");
+  subs.forEach(s => {
+    const rc = DB.reels.filter(r => r.subfolderId === s.id).length;
+    const card = document.createElement("div");
+    card.className = "subfolder-card";
+    card.innerHTML = `
+      <button class="sf-del" onclick="event.stopPropagation();deleteSubfolder('${s.id}')">✕</button>
+      <div class="sf-icon">${s.icon||"📁"}</div>
+      <div class="sf-name">${s.name}</div>
+      <div class="sf-brief">${s.brief||"Sin descripción"}</div>
+      <div class="sf-count">${rc} ${rc===1?"reel":"reels"}</div>`;
+    card.onclick = () => openSubfolder(s.id, state.clientId);
+    grid.appendChild(card);
+  });
+  const addCard = document.createElement("div");
+  addCard.className = "add-card";
+  addCard.innerHTML = `<div style="font-size:22px;font-weight:300">+</div><div>Nueva carpeta</div>`;
+  addCard.onclick = () => openModal("modal-subfolder");
+  grid.appendChild(addCard);
+}
+
+// REELS
+function renderReels(vc) {
+  const sf = DB.subfolders.find(s => s.id === state.subfolderId);
+  if (!sf) { openClient(state.clientId); return; }
+  let reels = DB.reels.filter(r => r.subfolderId === state.subfolderId);
+  const companies = [...new Set(reels.map(r=>r.company))].filter(Boolean);
+  const formats = [...new Set(reels.map(r=>r.format))].filter(Boolean);
+
+  vc.innerHTML = `
+    <div class="content">
+      ${sf.brief ? `<div class="info-box" style="margin-bottom:14px"><strong>Brief:</strong> ${sf.brief}</div>` : ""}
+      <div class="filter-bar" id="reel-filters"></div>
+      <div class="reel-grid" id="reel-grid"></div>
+    </div>`;
+
+  // filters
+  const fb = document.getElementById("reel-filters");
+  let activeCompany = "all", activeStatus = "all", activeFormat = "all";
+  const render = () => {
+    let filtered = DB.reels.filter(r => r.subfolderId === state.subfolderId);
+    if (activeCompany !== "all") filtered = filtered.filter(r=>r.company===activeCompany);
+    if (activeStatus !== "all") filtered = filtered.filter(r=>r.status===activeStatus);
+    if (activeFormat !== "all") filtered = filtered.filter(r=>r.format===activeFormat);
+    renderReelCards(filtered);
+  };
+
+  if (companies.length > 1) {
+    const lbl = document.createElement("span"); lbl.className="filter-label"; lbl.textContent="Empresa:"; fb.appendChild(lbl);
+    ["all",...companies].forEach(c => {
+      const b = document.createElement("button"); b.className=`chip${c==="all"&&activeCompany==="all"?" active":""}`; b.textContent=c==="all"?"Todas":c;
+      b.onclick=()=>{activeCompany=c;fb.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();};
+      fb.appendChild(b);
+    });
+  }
+  render();
+}
+
+function renderReelCards(reels) {
+  const grid = document.getElementById("reel-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  if (reels.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:48px;opacity:.2;margin-bottom:12px">📱</div><div style="font-family:var(--serif);font-size:20px;margin-bottom:8px">Sin reels todavía</div><div style="font-size:13px">Tocá el botón verde para cargar el primer reel</div></div>`;
+    return;
+  }
+  reels.forEach(r => {
+    const col = COLORS.find(x=>x.id===r.color)||COLORS[0];
+    const sc = extractSC(r.url);
+    const statusMap = {saved:"status-saved",analyzed:"status-analyzed",published:"status-published"};
+    const statusLabel = {saved:"Guardado",analyzed:"Analizado",published:"Publicado"};
+    const card = document.createElement("div");
+    card.className = "reel-card";
+    card.innerHTML = `
+      <div class="reel-color-bar" style="background:${col.id==="none"?"transparent":col.hex}"></div>
+      <div class="reel-preview">
+        <div class="rp-icon">📱</div>
+        <div class="rp-co">${r.company}</div>
+        ${sc?`<div class="rp-sc">/${sc}</div>`:""}
+        <button class="rp-open" onclick="openIG('${r.url}')">↗ Abrir en Instagram</button>
+      </div>
+      <div class="reel-body">
+        <div class="reel-co-label">${r.company}</div>
+        <div class="reel-title">${r.title||"Sin título"}</div>
+        <div class="reel-meta">
+          ${r.duration?`<span class="tag dur">⏱ ${r.duration}s</span>`:""}
+          ${r.hookType?`<span class="tag hook">🪝 ${r.hookType}</span>`:""}
+          ${r.score?`<span class="tag score">★ ${r.score}/10</span>`:""}
+          ${r.format?`<span class="tag format">${r.format}</span>`:""}
+          <span class="status-badge ${statusMap[r.status]||"status-saved"}">${statusLabel[r.status]||"Guardado"}</span>
+        </div>
+        ${r.hookDesc?`<div class="reel-hook-text">"${r.hookDesc}"</div>`:""}
+        <div class="reel-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openAnalysis('${r.id}')">${r.analyzed?"↺ Re-analizar":"✦ Analizar IA"}</button>
+          <button class="btn btn-ghost btn-sm" onclick="cycleStatus('${r.id}')">Estado</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteReel('${r.id}')">✕</button>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+// TABLE VIEW
+function renderTable(vc) {
+  vc.innerHTML = `
+    <div class="content">
+      <div class="page-header">
+        <div class="page-title">Todos los <em>Reels</em></div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">↓ Descargar CSV</button>
+      </div>
+      <div class="filter-bar" id="tbl-filters"></div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Cliente</th><th>Carpeta</th><th>Empresa</th><th>Título</th>
+          <th>Formato</th><th>Estado</th><th>Duración</th><th>Gancho</th>
+          <th>Estrategia</th><th>Score</th><th>Atención</th><th>Fecha</th><th>Link</th><th></th>
+        </tr></thead>
+        <tbody id="tbl-body"></tbody>
+      </table></div>
+    </div>`;
+
+  const fb = document.getElementById("tbl-filters");
+  let fClient = "all", fStatus = "all";
+  const render = () => {
+    let data = [...DB.reels];
+    if (fClient !== "all") data = data.filter(r=>r.clientId===fClient);
+    if (fStatus !== "all") data = data.filter(r=>r.status===fStatus);
+    const tbody = document.getElementById("tbl-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!data.length) { tbody.innerHTML=`<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">Sin reels que coincidan</td></tr>`; return; }
+    data.forEach(r => {
+      const client = DB.clients.find(c=>c.id===r.clientId);
+      const sf = DB.subfolders.find(s=>s.id===r.subfolderId);
+      const statusLabel={saved:"Guardado",analyzed:"Analizado",published:"Publicado"};
+      const statusClass={saved:"status-saved",analyzed:"status-analyzed",published:"status-published"};
+      const col=COLORS.find(x=>x.id===r.color)||COLORS[0];
+      const tr = document.createElement("tr");
+      tr.innerHTML=`
+        <td class="td-company">${col.id!=="none"?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col.hex};margin-right:6px"></span>`:""}${client?.name||""}</td>
+        <td><span class="folder-badge" style="background:rgba(26,92,62,.15);border:1px solid var(--green);color:var(--green-xl);padding:2px 7px;border-radius:4px;font-size:10px">${sf?.icon||""} ${sf?.name||""}</span></td>
+        <td class="td-company" style="font-size:12px">${r.company||""}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${r.title||"—"}</td>
+        <td style="font-size:11px">${r.format||"—"}</td>
+        <td><span class="status-badge ${statusClass[r.status]||"status-saved"}">${statusLabel[r.status]||"Guardado"}</span></td>
+        <td style="font-family:var(--mono);text-align:center">${r.duration?r.duration+"s":"—"}</td>
+        <td class="td-hook">${r.hookType||"—"}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${r.strategy||"—"}</td>
+        <td class="td-score">${r.score?r.score+"/10":"—"}</td>
+        <td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.attentionTime||"—"}</td>
+        <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${r.createdAt||""}</td>
+        <td><button onclick="openIG('${r.url}')" style="background:none;border:none;color:var(--green-xl);cursor:pointer;font-size:11px;text-decoration:underline;font-family:var(--mono)">Abrir IG</button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="openAnalysis('${r.id}')" style="font-size:10px;padding:3px 7px">${r.analyzed?"↺":"✦ IA"}</button></td>`;
+      tbody.appendChild(tr);
+    });
+  };
+
+  // filter chips
+  const lbl=document.createElement("span"); lbl.className="filter-label"; lbl.textContent="Cliente:"; fb.appendChild(lbl);
+  [{id:"all",name:"Todos"},...DB.clients].forEach(c=>{
+    const b=document.createElement("button"); b.className=`chip${c.id==="all"&&fClient==="all"?" active":""}`; b.textContent=c.name;
+    b.onclick=()=>{fClient=c.id;fb.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();};
+    fb.appendChild(b);
+  });
+  const lbl2=document.createElement("span"); lbl2.className="filter-label"; lbl2.style.marginLeft="10px"; lbl2.textContent="Estado:"; fb.appendChild(lbl2);
+  [{id:"all",n:"Todos"},{id:"saved",n:"Guardado"},{id:"analyzed",n:"Analizado"},{id:"published",n:"Publicado"}].forEach(s=>{
+    const b=document.createElement("button"); b.className=`chip${s.id==="all"&&fStatus==="all"?" active":""}`; b.textContent=s.n;
+    b.onclick=()=>{fStatus=s.id;fb.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();};
+    fb.appendChild(b);
+  });
+  render();
+}
+
+// CHART VIEW
+let chartInstance = null;
+function renderChart(vc) {
+  vc.innerHTML = `
+    <div class="content">
+      <div class="page-header"><div class="page-title"><em>Gráficos</em> de análisis</div></div>
+      <div class="chart-container">
+        <div class="chart-title">Puntuación promedio por empresa</div>
+        <div class="chart-wrap"><canvas id="chart-scores"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Reels por estado</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chart-status"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Reels por formato</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chart-format"></canvas></div>
+      </div>
+    </div>`;
+
+  // Score by company
+  const byCompany = {};
+  DB.reels.filter(r=>r.score).forEach(r => {
+    if (!byCompany[r.company]) byCompany[r.company]=[];
+    byCompany[r.company].push(r.score);
+  });
+  const compLabels = Object.keys(byCompany);
+  const compData = compLabels.map(c => (byCompany[c].reduce((a,b)=>a+b,0)/byCompany[c].length).toFixed(1));
+
+  if (compLabels.length) {
+    new Chart(document.getElementById("chart-scores"), {
+      type:"bar",
+      data:{labels:compLabels,datasets:[{label:"Score promedio",data:compData,backgroundColor:"rgba(61,153,102,.7)",borderColor:"#3d9966",borderWidth:1,borderRadius:5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:10,ticks:{color:"#6a7d72"},grid:{color:"#1e3328"}},x:{ticks:{color:"#b8ad9e"},grid:{display:false}}}}
+    });
+  } else {
+    document.getElementById("chart-scores").parentElement.innerHTML=`<div class="no-data">No hay reels analizados con puntuación todavía</div>`;
+  }
+
+  // Status donut
+  const statuses = {saved:0,analyzed:0,published:0};
+  DB.reels.forEach(r=>{ statuses[r.status||"saved"]++; });
+  new Chart(document.getElementById("chart-status"),{
+    type:"doughnut",
+    data:{labels:["Guardado","Analizado","Publicado"],datasets:[{data:[statuses.saved,statuses.analyzed,statuses.published],backgroundColor:["#2980b9","#3d9966","#e67e22"],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#b8ad9e"}}}}
+  });
+
+  // Format bar
+  const fmts = {};
+  DB.reels.forEach(r=>{ if(r.format){fmts[r.format]=(fmts[r.format]||0)+1;} });
+  const fmtLabels=Object.keys(fmts), fmtData=fmtLabels.map(f=>fmts[f]);
+  if (fmtLabels.length) {
+    new Chart(document.getElementById("chart-format"),{
+      type:"bar",
+      data:{labels:fmtLabels,datasets:[{data:fmtData,backgroundColor:"rgba(142,68,173,.7)",borderColor:"#8e44ad",borderWidth:1,borderRadius:5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{color:"#6a7d72"},grid:{color:"#1e3328"}},x:{ticks:{color:"#b8ad9e"},grid:{display:false}}}}
+    });
+  } else {
+    document.getElementById("chart-format").parentElement.innerHTML=`<div class="no-data">Cargá reels con formato para ver este gráfico</div>`;
+  }
+}
+
+// COMPARE VIEW
+function renderCompare(vc) {
+  const rA = DB.reels.find(r=>r.id===state.compareA);
+  const rB = DB.reels.find(r=>r.id===state.compareB);
+  vc.innerHTML = `
+    <div class="content">
+      <div class="page-header"><div class="page-title"><em>Comparar</em> reels</div></div>
+      <div class="compare-grid" id="compare-grid"></div>
+    </div>`;
+  const grid = document.getElementById("compare-grid");
+
+  ["A","B"].forEach(slot => {
+    const r = slot==="A"?rA:rB;
+    if (!r) {
+      const sel = document.createElement("div");
+      sel.className="compare-selector";
+      sel.innerHTML=`<div style="font-size:32px;opacity:.3">+</div><div>Elegí reel ${slot}</div>`;
+      sel.onclick=()=>openCompareSelect(slot);
+      grid.appendChild(sel);
+    } else {
+      const card = document.createElement("div");
+      card.className="compare-card";
+      const statusLabel={saved:"Guardado",analyzed:"Analizado",published:"Publicado"};
+      card.innerHTML=`
+        <div class="compare-label">Reel ${slot}</div>
+        <div class="compare-name">${r.company}</div>
+        <div class="compare-row"><span class="cr-key">Título</span><span class="cr-val">${r.title||"—"}</span></div>
+        <div class="compare-row"><span class="cr-key">Formato</span><span class="cr-val">${r.format||"—"}</span></div>
+        <div class="compare-row"><span class="cr-key">Duración</span><span class="cr-val">${r.duration?r.duration+"s":"—"}</span></div>
+        <div class="compare-row"><span class="cr-key">Gancho</span><span class="cr-val ${rA&&rB&&r.hookType?"":""}">${r.hookType||"—"}</span></div>
+        <div class="compare-row"><span class="cr-key">Estrategia</span><span class="cr-val">${r.strategy||"—"}</span></div>
+        <div class="compare-row"><span class="cr-key">Score</span><span class="cr-val ${rA&&rB&&r.score&&(slot==="A"?rA.score>rB.score:rB.score>rA.score)?"compare-winner":""}">${r.score?r.score+"/10":"—"}</span></div>
+        <div class="compare-row"><span class="cr-key">Atención</span><span class="cr-val">${r.attentionTime||"—"}</span></div>
+        <div class="compare-row"><span class="cr-key">Estado</span><span class="cr-val">${statusLabel[r.status]||"—"}</span></div>
+        <div style="margin-top:12px;display:flex;gap:7px">
+          <button class="btn btn-ghost btn-sm" onclick="openIG('${r.url}')">↗ Abrir IG</button>
+          <button class="btn btn-ghost btn-sm" onclick="openCompareSelect('${slot}')">Cambiar</button>
+        </div>`;
+      grid.appendChild(card);
+    }
+  });
+
+  if (rA && rB) {
+    const vsDiv=document.createElement("div");
+    vsDiv.style="grid-column:1/-1;text-align:center;padding:8px 0";
+    const scoreMsg = !rA.score||!rB.score ? "" : rA.score===rB.score ? "Empate en score" : `${rA.score>rB.score?rA.company:rB.company} tiene mejor puntuación`;
+    vsDiv.innerHTML=`<div class="vs-badge">VS</div>${scoreMsg?`<div style="color:var(--green-xl);font-size:13px;font-weight:600">${scoreMsg}</div>`:""}`;
+    grid.insertBefore(vsDiv, grid.children[1]);
+  }
+}
+
+function openCompareSelect(slot) {
+  state.comparePicking = slot;
+  const list = document.getElementById("compare-select-list");
+  document.getElementById("compare-select-title").innerHTML = `Elegí reel para <em>${slot}</em>`;
+  list.innerHTML = "";
+  if (!DB.reels.length) { list.innerHTML=`<div style="color:var(--muted);font-size:13px;padding:16px">No hay reels cargados todavía</div>`; }
+  DB.reels.forEach(r => {
+    const sf=DB.subfolders.find(s=>s.id===r.subfolderId);
+    const item=document.createElement("div");
+    item.className="reel-select-item";
+    item.innerHTML=`<div class="rsi-co">${r.company} ${sf?`· ${sf.name}`:""}</div><div class="rsi-title">${r.title||r.url}</div>`;
+    item.onclick=()=>{
+      if(slot==="A") state.compareA=r.id; else state.compareB=r.id;
+      closeModal("modal-compare-select");
+      renderView();
+    };
+    list.appendChild(item);
+  });
+  openModal("modal-compare-select");
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRUD
+// ═══════════════════════════════════════════════════════════
+let editingClientIcon = "👤";
+let editingClientColor = "none";
+let editingSfIcon = "📁";
+let editingReelColor = "none";
+
+function buildEmojiGrids() {
+  ["client-emoji-grid","sf-emoji-grid"].forEach((id,idx) => {
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.innerHTML="";
+    EMOJIS.forEach(e=>{
+      const d=document.createElement("div");
+      d.className="emoji-opt"; d.textContent=e;
+      d.onclick=()=>{
+        el.querySelectorAll(".emoji-opt").forEach(x=>x.classList.remove("sel"));
+        d.classList.add("sel");
+        if(idx===0) editingClientIcon=e; else editingSfIcon=e;
+      };
+      el.appendChild(d);
+    });
+    el.children[0]?.classList.add("sel");
+  });
+}
+
+function buildColorPickers() {
+  ["client-color-picker","reel-color-picker"].forEach((id,idx)=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.innerHTML="";
+    COLORS.forEach(c=>{
+      const d=document.createElement("div");
+      d.className=`color-opt${c.id==="none"?" sel":""}`; 
+      d.style.background=c.hex; d.title=c.label;
+      d.onclick=()=>{
+        el.querySelectorAll(".color-opt").forEach(x=>x.classList.remove("sel"));
+        d.classList.add("sel");
+        if(idx===0) editingClientColor=c.id; else editingReelColor=c.id;
+      };
+      el.appendChild(d);
+    });
+  });
+}
+
+function saveClient() {
+  const name=document.getElementById("client-name").value.trim();
+  const err=document.getElementById("client-err");
+  if(!name){err.textContent="El nombre es obligatorio";err.style.display="block";return;}
+  DB.clients.push({
+    id:Date.now().toString(), name,
+    desc:document.getElementById("client-desc").value.trim(),
+    icon:editingClientIcon, color:editingClientColor,
+    createdAt:new Date().toLocaleDateString("es-AR")
+  });
+  saveDB(); closeModal("modal-client"); showToast("✓ Cliente creado");
+  document.getElementById("client-name").value="";
+  document.getElementById("client-desc").value="";
+  renderSidebar(); renderView(); updateStats();
+}
+
+function saveSubfolder() {
+  const name=document.getElementById("sf-name").value.trim();
+  const err=document.getElementById("sf-err");
+  if(!name){err.textContent="El nombre es obligatorio";err.style.display="block";return;}
+  if(!state.clientId){err.textContent="Error: no hay cliente seleccionado";err.style.display="block";return;}
+  DB.subfolders.push({
+    id:Date.now().toString(), name, clientId:state.clientId,
+    brief:document.getElementById("sf-brief").value.trim(),
+    icon:editingSfIcon,
+    createdAt:new Date().toLocaleDateString("es-AR")
+  });
+  saveDB(); closeModal("modal-subfolder"); showToast("✓ Carpeta creada");
+  document.getElementById("sf-name").value="";
+  document.getElementById("sf-brief").value="";
+  renderSidebar(); renderView();
+}
+
+function saveReel() {
+  const url=document.getElementById("reel-url").value.trim();
+  const company=document.getElementById("reel-company").value.trim();
+  const err=document.getElementById("reel-err");
+  if(!url){err.textContent="Pegá el link del reel";err.style.display="block";return;}
+  if(!company){err.textContent="Escribí el nombre de la empresa";err.style.display="block";return;}
+  if(!state.subfolderId){err.textContent="Error: abrí una carpeta primero";err.style.display="block";return;}
+  DB.reels.push({
+    id:Date.now().toString(), url, company,
+    title:document.getElementById("reel-title").value.trim(),
+    duration:document.getElementById("reel-duration").value.trim(),
+    format:document.getElementById("reel-format").value,
+    status:document.getElementById("reel-status").value||"saved",
+    color:editingReelColor,
+    notes:document.getElementById("reel-notes").value.trim(),
+    clientId:state.clientId, subfolderId:state.subfolderId,
+    analyzed:false, createdAt:new Date().toLocaleDateString("es-AR")
+  });
+  saveDB(); closeModal("modal-reel"); showToast("✓ Reel cargado");
+  ["reel-url","reel-company","reel-title","reel-duration","reel-notes"].forEach(id=>{document.getElementById(id).value="";});
+  document.getElementById("reel-format").value="";
+  document.getElementById("reel-status").value="saved";
+  renderSidebar(); renderView(); updateStats();
+}
+
+function cycleStatus(reelId) {
+  const r=DB.reels.find(x=>x.id===reelId); if(!r)return;
+  const order=["saved","analyzed","published"];
+  const i=order.indexOf(r.status||"saved");
+  r.status=order[(i+1)%3];
+  saveDB(); renderView(); updateStats();
+}
+
+function deleteClient(id) {
+  if(!confirm("¿Eliminar este cliente, sus carpetas y todos sus reels?"))return;
+  DB.clients=DB.clients.filter(c=>c.id!==id);
+  const sfIds=DB.subfolders.filter(s=>s.clientId===id).map(s=>s.id);
+  DB.subfolders=DB.subfolders.filter(s=>s.clientId!==id);
+  DB.reels=DB.reels.filter(r=>r.clientId!==id);
+  if(state.clientId===id){state.clientId=null;state.subfolderId=null;setView("home");}
+  saveDB(); renderSidebar(); renderView(); updateStats(); showToast("Cliente eliminado");
+}
+
+function deleteSubfolder(id) {
+  if(!confirm("¿Eliminar esta carpeta y todos sus reels?"))return;
+  DB.subfolders=DB.subfolders.filter(s=>s.id!==id);
+  DB.reels=DB.reels.filter(r=>r.subfolderId!==id);
+  if(state.subfolderId===id){state.subfolderId=null;openClient(state.clientId);}
+  saveDB(); renderSidebar(); renderView(); updateStats(); showToast("Carpeta eliminada");
+}
+
+function deleteReel(id) {
+  if(!confirm("¿Eliminar este reel?"))return;
+  DB.reels=DB.reels.filter(r=>r.id!==id);
+  saveDB(); renderView(); updateStats(); renderSidebar(); showToast("Reel eliminado");
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI ANALYSIS
+// ═══════════════════════════════════════════════════════════
+async function callAI(prompt) {
+  try {
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||"").join("")||"";
+    const m=text.match(/\{[\s\S]*\}/);
+    return m?JSON.parse(m[0]):null;
+  } catch(e){console.error(e);return null;}
+}
+
+function openAnalysis(reelId) {
+  const reel=DB.reels.find(r=>r.id===reelId); if(!reel)return;
+  document.getElementById("analysis-title").innerHTML=`Análisis <em>IA</em> — ${reel.company}`;
+  const body=document.getElementById("analysis-body");
+  body.innerHTML=`
+    <div style="background:rgba(61,153,102,.06);border:1px solid rgba(61,153,102,.2);border-radius:8px;padding:14px;margin-bottom:14px">
+      <p style="font-size:12px;color:var(--cream-d);margin-bottom:12px">Completá lo que viste en el reel para mejorar el análisis. Todo es opcional.</p>
+      <div class="field"><label>¿Cómo abre el reel?</label><input id="a-hook" value="${reel.hookType||""}" placeholder="Pregunta, dato, humor, producto..."/></div>
+      <div class="field"><label>Notas adicionales</label><textarea id="a-notes" placeholder="Música, texto en pantalla, estética, transiciones...">${reel.notes||""}</textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-analysis')">Cancelar</button>
+      <button class="btn btn-primary" onclick="runAnalysis('${reelId}')">✦ Analizar con IA</button>
+    </div>`;
+  openModal("modal-analysis");
+}
+
+async function runAnalysis(reelId) {
+  const reel=DB.reels.find(r=>r.id===reelId); if(!reel)return;
+  const hookHint=document.getElementById("a-hook")?.value.trim()||"";
+  const notesHint=document.getElementById("a-notes")?.value.trim()||reel.notes||"";
+  const body=document.getElementById("analysis-body");
+  body.innerHTML=`<div class="analysis-loading"><div class="spinner"></div>Analizando con IA... puede tardar unos segundos.</div>`;
+
+  const result=await callAI(
+    `Sos experto en marketing de contenidos para Instagram Reels. Analizá este reel:\n`+
+    `Empresa: ${reel.company}\nURL: ${reel.url}\nDuración: ${reel.duration||"?"}s\n`+
+    `Título: ${reel.title||"sin título"}\nFormato declarado: ${reel.format||"desconocido"}\n`+
+    `Gancho observado: ${hookHint||"no especificado"}\nNotas: ${notesHint||"ninguna"}\n\n`+
+    `Respondé ÚNICAMENTE con un objeto JSON (sin texto extra, sin markdown):\n`+
+    `{"hookType":"tipo de gancho en 3-5 palabras","hookDesc":"descripción del gancho en 1-2 oraciones","attentionTime":"estimación de retención probable","strategy":"estrategia narrativa principal","score":8,"strengths":["f1","f2","f3"],"ideas":[{"title":"Idea 1","script":"2-3 oraciones"},{"title":"Idea 2","script":"2-3 oraciones"},{"title":"Idea 3","script":"2-3 oraciones"}]}`
+  );
+
+  if (!result) {
+    body.innerHTML=`<p style="color:#e74c3c;font-size:13px;margin-bottom:16px">No se pudo conectar. Verificá internet e intentá de nuevo.</p><div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('modal-analysis')">Cerrar</button><button class="btn btn-primary" onclick="openAnalysis('${reelId}')">Reintentar</button></div>`;
+    return;
+  }
+
+  // Save to reel
+  Object.assign(reel,{analyzed:true,hookType:result.hookType,hookDesc:result.hookDesc,strategy:result.strategy,score:result.score,attentionTime:result.attentionTime,status:"analyzed"});
+  saveDB(); updateStats();
+
+  body.innerHTML=`
+    <div class="as"><h4>Tipo de gancho</h4><p><strong style="color:#c9943a">${result.hookType}</strong> — ${result.hookDesc}</p></div>
+    <div class="as"><h4>Estrategia narrativa</h4><p>${result.strategy}</p></div>
+    <div class="as"><h4>Tiempo de atención estimado</h4><p>${result.attentionTime}</p></div>
+    <div class="as"><h4>Puntos fuertes</h4><ul>${(result.strengths||[]).map(s=>`<li>${s}</li>`).join("")}</ul></div>
+    <div class="as"><h4>Puntuación: <span style="color:var(--green-xl);font-family:var(--serif);font-size:16px">${result.score}/10</span></h4></div>
+    <div class="as"><h4>Ideas para tu contenido</h4>${(result.ideas||[]).map((idea,i)=>`<div class="idea-card"><div class="idea-num">IDEA ${String(i+1).padStart(2,"0")}</div><strong>${idea.title}</strong><p>${idea.script}</p></div>`).join("")}</div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('modal-analysis')">Cerrar</button></div>`;
+}
+
+async function genFolderIdeas() {
+  let reels;
+  if (state.view==="reels") reels=DB.reels.filter(r=>r.subfolderId===state.subfolderId);
+  else reels=DB.reels.filter(r=>r.clientId===state.clientId);
+  if(!reels.length){showToast("No hay reels para analizar");return;}
+  const sf=DB.subfolders.find(s=>s.id===state.subfolderId);
+  const client=DB.clients.find(c=>c.id===state.clientId);
+  const name=sf?.name||client?.name||"esta carpeta";
+  document.getElementById("analysis-title").innerHTML=`Ideas <em>IA</em> — ${name}`;
+  const body=document.getElementById("analysis-body");
+  body.innerHTML=`<div class="analysis-loading"><div class="spinner"></div>Analizando ${reels.length} reels y generando ideas...</div>`;
+  openModal("modal-analysis");
+  const summary=reels.map(r=>`- ${r.company}: gancho="${r.hookType||"sin analizar"}", ${r.duration||"?"}s, formato="${r.format||"desconocido"}", score=${r.score||"sin score"}`).join("\n");
+  const result=await callAI(
+    `Estratega de contenidos para Instagram. Reels en "${name}":\n${summary}\n\n`+
+    `Generá 5 ideas originales para diferenciarse de la competencia. SOLO JSON:\n`+
+    `{"patterns":["patrón 1","patrón 2","patrón 3"],"opportunities":["oportunidad 1","oportunidad 2"],"ideas":[{"title":"Idea 1","hook":"tipo de gancho","script":"descripción 2-3 oraciones"},{"title":"Idea 2","hook":"gancho","script":"descripción"},{"title":"Idea 3","hook":"gancho","script":"descripción"},{"title":"Idea 4","hook":"gancho","script":"descripción"},{"title":"Idea 5","hook":"gancho","script":"descripción"}]}`
+  );
+  if(!result){body.innerHTML=`<p style="color:#e74c3c;font-size:13px">No se pudo conectar. Verificá internet.</p><div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('modal-analysis')">Cerrar</button></div>`;return;}
+  body.innerHTML=`
+    <div class="as"><h4>Patrones de la competencia</h4><ul>${(result.patterns||[]).map(p=>`<li>${p}</li>`).join("")}</ul></div>
+    <div class="as"><h4>Oportunidades de diferenciación</h4><ul>${(result.opportunities||[]).map(o=>`<li>${o}</li>`).join("")}</ul></div>
+    <div class="as"><h4>5 Ideas originales</h4>${(result.ideas||[]).map((idea,i)=>`<div class="idea-card"><div class="idea-num">IDEA ${String(i+1).padStart(2,"0")} · Gancho: ${idea.hook}</div><strong>${idea.title}</strong><p>${idea.script}</p></div>`).join("")}</div>
+    <div class="modal-actions" style="margin-top:14px"><button class="btn btn-ghost" onclick="closeModal('modal-analysis')">Cerrar</button></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════════════
+function downloadCSV() {
+  const h=["Cliente","Carpeta","Empresa","Título","Link","Formato","Estado","Duración (seg)","Tipo de gancho","Desc. gancho","Estrategia","Tiempo atención","Puntuación","Puntos fuertes","Notas","Analizado","Fecha"];
+  const rows=DB.reels.map(r=>{
+    const c=DB.clients.find(x=>x.id===r.clientId);
+    const sf=DB.subfolders.find(x=>x.id===r.subfolderId);
+    const clean=v=>(v||"").toString().replace(/[\r\n,]/g," ").replace(/"/g,'""');
+    return [c?.name||"",sf?.name||"",r.company,r.title,r.url,r.format||"",r.status||"saved",r.duration||"",r.hookType||"",clean(r.hookDesc),clean(r.strategy),r.attentionTime||"",r.score||"",(r.strengths||[]).join(" | "),clean(r.notes),r.analyzed?"Sí":"No",r.createdAt||""];
+  });
+  const csv=[h,...rows].map(row=>row.map(v=>`"${v}"`).join(",")).join("\r\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="jupiter-reels.csv";
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+  showToast("✓ CSV descargado");
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function extractSC(url){try{const m=url.match(/\/(reel|p)\/([A-Za-z0-9_-]+)/);return m?m[2]:null;}catch{return null;}}
+function openIG(url){const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";document.body.appendChild(a);a.click();document.body.removeChild(a);}
+function openModal(id){document.getElementById(id).style.display="flex";document.body.style.overflow="hidden";}
+function closeModal(id){document.getElementById(id).style.display="none";document.body.style.overflow="";const e=document.querySelectorAll(".form-error");e.forEach(x=>{x.style.display="none";});}
+function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500);}
+function toggleSidebar(){const sb=document.getElementById("sidebar"),bg=document.getElementById("overlay-bg");sb.classList.toggle("open");bg.classList.toggle("open");}
+function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay-bg").classList.remove("open");}
+</script>
+</body>
+</html>
